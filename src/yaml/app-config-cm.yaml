@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  app-config.properties: |
+    server-address=skupper-redis-server-2.redis-demo.svc.cluster.local:6379
+    db-password=
+    database=0
