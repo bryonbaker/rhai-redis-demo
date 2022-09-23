@@ -16,3 +16,4 @@ src/bin/*
 # vendor/
 
 *.code-workspace
+src/scripts/ibm-cloud.yaml
