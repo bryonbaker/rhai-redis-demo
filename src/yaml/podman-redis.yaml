@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skupper-redis-server-0
+data:
+  redis.conf: |-
+    appendonly no
+    save ""
+    dir /data
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    maxmemory-policy "volatile-lru"
+    maxmemory 1gb
+  sentinel.conf: |-
+    dir /data
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes   
+    sentinel myid 6044fbd47bed15e366a25fb1bff218fa141fred0
+    slave-read-only yes
+    sentinel monitor redis-skupper skupper-redis-on-prem-server-0 6379 2
+    sentinel down-after-milliseconds redis-skupper 5000
+    sentinel failover-timeout redis-skupper 10000
+    sentinel parallel-syncs redis-skupper 4
+    sentinel announce-ip skupper-redis-on-prem-server-0
+    sentinel announce-port 26379
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-local
+spec:
+  containers:
+  - name: redis
+    env:
+      - name: TZ
+        value: Australia/Melbourne
+    image: redis
+    command: ['/bin/bash', '-c', "mkdir -p /etc/redis && cp /config/redis.conf /etc/redis/ && redis-server /etc/redis/redis.conf --replica-announce-ip skupper-redis-on-prem-server-0 --protected-mode no"]
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    ports:
+    - containerPort: 6379
+      hostPort: 6379
+    volumeMounts:
+    - name: redis-config
+      mountPath: /config
+
+  - name: redis-sentinel
+    env:
+      - name: TZ
+        value: Australia/Melbourne
+    image: redis
+    command: ['/bin/bash', '-c', "mkdir -p /etc/redis && cp /config/sentinel.conf /etc/redis/ && redis-server /etc/redis/sentinel.conf --sentinel"]
+    resources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    ports:
+    - containerPort: 26379
+      hostPort: 26379
+    volumeMounts:
+    - name: redis-config
+      mountPath: /config
+      
+  # This container is for debugging
+  # - name: idler
+  #   image: quay.io/brbaker/idler
+  #   command: ['/bin/bash', '-c', "mkdir /data && mkdir /etc/redis && cp /config/redis.conf /etc/redis/ && cp /config/sentinel.conf /etc/redis/ && /app/idler"]
+  #   envFrom:
+  #   - configMapRef:
+  #       name: foo
+  #       optional: false
+  #   volumeMounts:
+  #   - name: redis-config
+  #     mountPath: /config
+  #     readOnly: true
+
+  volumes:
+    - name: redis-config
+      configMap:
+        name: skupper-redis-server-0
+
