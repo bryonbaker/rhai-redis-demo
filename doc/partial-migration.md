@@ -58,8 +58,7 @@ Add the following line to the end of the ```hosts``` file and save it:
 Start the Redis Cache in Podman. This is the on-premises Master Cache that all replicas are synchronised with.
 
 ```
-src$ cd yaml
-yaml$ podman play kube podman-redis.yaml
+src$ podman play kube yaml/podman-redis.yaml
 ```
 
 Podman launches the Redis cache and sentinel server in a Podman pod. Check the running state with ```podman ps```.
@@ -266,7 +265,7 @@ Enter ```redis-cli get key``` and press ```Enter```. Observe the cache value cha
 1000670000@skupper-redis-server-1-6bb44b65b5-mfgbv:/data$
 ```
 
-Press ```Ctrl-D``` to exit the running ocntainer
+Press ```Ctrl-D``` to exit the running container
 ```
 1000670000@skupper-redis-server-1-6bb44b65b5-mfgbv:/data$ 
 exit
@@ -425,49 +424,450 @@ You will now leave the ON-PREM cluster.
 
 ## Migrate the Cache and Application to the Public Cloud
 
+### Story Arc
+Now that you have made your application cloud native and cloud ready, it is timer to start cloud migration using the consistent fabric provided by OpenShift Fabric, and the seamless application interconnectivity provided by Red Hat Application Interconnect.
+
+### Set up the Sydney Cloud Environment
+Open a new terminal window and set up the Sydney environment by running the command:
+```
+src$ . ./scripts/env-setup-ibm.sh
+SYDNEY: src$
+```
+Observe the prompt now idicates you are using the SYDNEY environment
+
+```
+SYDNEY src$ oc create-project redis-sydney
+```
+
+### Create the RHAI Network
+
+```
+SYDNEY: src$ skupper init --site-name SYDNEY --console-auth=internal --console-user=admin --console-password=password
+
+Skupper is now installed in namespace 'redis-sydney'.  Use 'skupper status' to get more information.
+```
+Now you have installed RHAI you need to add the Sydney router to the RHAI network.
+
+Create a secure token:
+```
+SYDNEY: src$ skupper token create --token-type cert ibm-cloud.yaml
+Connection token written to sydney-token.yaml
+```
+
+This is the token that you need to securely deliver to the ON-PREM site and import into RHAI.
+
+Change to the ON-PREM terminal and enter the following command to import the token and link the routers.
+
+```
+ON-PREM: src$ skupper link create sydney-token.yaml 
+
+Site configured to link to skupper-inter-router-redis-sydney.violet-cluster-new-2761a99850dd8c23002378ac6ce7f9ad-0000.au-syd.containers.appdomain.cloud:443 (name=link1)
+Check the status of the link using 'skupper link status'.
+```
+
+View the topology in the RHAI console:  
+
+<img src="./images/rhai-syd-3.png" alt="drawing" width="800"/>
+
+To view the network status type the command ```skupper network status```.
+
+It can take a little while for the routers to synchronise. But after a while the result of the network should look like this:
+
+```
+SYDNEY: src$ skupper network status
+
+Sites:
+├─ [local] d30741a - SYDNEY 
+│  URL: skupper-inter-router-redis-sydney.violet-cluster-new-2761a99850dd8c23002378ac6ce7f9ad-0000.au-syd.containers.appdomain.cloud
+│  mode: interior
+│  name: SYDNEY
+│  namespace: redis-sydney
+│  version: 1.0.2
+│  ╰─ Services:
+│     ├─ name: skupper-redis-server-1
+│     │  address: skupper-redis-server-1: 6379 26379
+│     │  protocol: tcp
+│     ╰─ name: skupper-redis-on-prem-server-0
+│        address: skupper-redis-on-prem-server-0: 6379 26379
+│        protocol: tcp
+╰─ [remote] 5d1dc1b - local 
+   name: local
+   namespace: redis-demo
+   sites linked to: d30741a-SYDNEY
+   version: 1.0.2
+   ╰─ Services:
+      ├─ name: skupper-redis-server-1
+      │  address: skupper-redis-server-1: 6379 26379
+      │  protocol: tcp
+      │  ╰─ Targets:
+      │     ├─ name: skupper-redis-server-1-6bb44b65b5-9wt2q
+      │     ╰─ name: skupper-redis-server-1-6bb44b65b5-9wt2q
+      ╰─ name: skupper-redis-on-prem-server-0
+         address: skupper-redis-on-prem-server-0: 6379 26379
+         protocol: tcp
+SYDNEY: bryon@rh-brbaker-bakerapps-net:(main)src$ 
+```
+
+When you established the nwteork, RHAI made all of the remote services available to the Sydney-based cluster.
+
+View the services and pods running in Sydney:
+```
+src$ oc get pods,svc
+
+NAME                                              READY   STATUS    RESTARTS   AGE
+pod/skupper-router-7d77d7d48c-dss9w               2/2     Running   0          13m
+pod/skupper-service-controller-6d6d77b546-n6zcz   1/1     Running   0          13m
+
+NAME                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)               AGE
+service/skupper                          ClusterIP   172.21.47.48     <none>        8080/TCP,8081/TCP     13m
+service/skupper-redis-on-prem-server-0   ClusterIP   172.21.249.92    <none>        6379/TCP,26379/TCP    4m16s
+service/skupper-redis-server-1           ClusterIP   172.21.114.89    <none>        6379/TCP,26379/TCP    4m15s
+service/skupper-router                   ClusterIP   172.21.204.203   <none>        55671/TCP,45671/TCP   13m
+service/skupper-router-local             ClusterIP   172.21.91.236    <none>        5671/TCP              13m
+```
+
+Observe that the only pods running are the skupper pods, but there are two redis services that you exposed with ```skupper expose``` earlier in this demonstration. The remote services are made available in the Sydney cluster via the RHAI router.  
+
+**Note:** We could just deploy the application to Sydney and have it use the on-premises cache. But for this demonstration we will create a replica in the cloud and use it locally.
+
+### Deploy the cache to the Public Cloud
+
+```
+SYDNEY: src$ oc apply -f yaml/redis-ibm-ocp-dep.yaml 
+
+deployment.apps/skupper-redis-syd-server-2 created
+configmap/skupper-redis-syd-server-2 created
+```
+
+To quickly test if the cache is replicating, query the cache directly from within Redis running in Sydney
+
+```
+SYDNEY: src$ oc get pods | grep redis
+NAME                                          READY   STATUS    RESTARTS   AGE
+skupper-redis-syd-server-2-59658ddbb9-dp4zr   2/2     Running   0          65s
+
+SYDNEY: src$ oc exec skupper-redis-syd-server-2-59658ddbb9-dp4zr -c redis -- redis-cli get key
+quadrisyllabical-alabastra
+```
+
+Observe the cache value matches the most recent value written to the on-premsies master cache by the "Mainframe."
+
+We now need to make the Sydney replica available to the RHAI network:
+
+```
+src$ skupper expose deployment skupper-redis-syd-server-2  --port 6379,26379
+
+deployment skupper-redis-syd-server-2 exposed as skupper-redis-syd-server-2
+
+```
+
+Examine the deployments, servcies, and running pods. Observe the Sydney replica is now available:
+```
+SYDNEY: src$ oc get deployment,svc,pods
+NAME                                         READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/skupper-redis-syd-server-2   1/1     1            1           8m49s
+deployment.apps/skupper-router               1/1     1            1           28m
+deployment.apps/skupper-service-controller   1/1     1            1           28m
+
+NAME                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)               AGE
+service/skupper                          ClusterIP   172.21.47.48     <none>        8080/TCP,8081/TCP     28m
+service/skupper-redis-on-prem-server-0   ClusterIP   172.21.249.92    <none>        6379/TCP,26379/TCP    19m
+service/skupper-redis-server-1           ClusterIP   172.21.114.89    <none>        6379/TCP,26379/TCP    19m
+service/skupper-redis-syd-server-2       ClusterIP   172.21.188.102   <none>        6379/TCP,26379/TCP    22s
+service/skupper-router                   ClusterIP   172.21.204.203   <none>        55671/TCP,45671/TCP   28m
+service/skupper-router-local             ClusterIP   172.21.91.236    <none>        5671/TCP              28m
+
+NAME                                              READY   STATUS    RESTARTS   AGE
+pod/skupper-redis-syd-server-2-59658ddbb9-dp4zr   2/2     Running   0          8m49s
+pod/skupper-router-7d77d7d48c-dss9w               2/2     Running   0          28m
+pod/skupper-service-controller-6d6d77b546-n6zcz   1/1     Running   0          28m
+```
+
+Take a moment to examine the network configuration. Observe where the services reside versus where they are available.
+
+```
+src$ skupper network status
+Sites:
+├─ [local] d30741a - SYDNEY 
+│  URL: skupper-inter-router-redis-sydney.violet-cluster-new-2761a99850dd8c23002378ac6ce7f9ad-0000.au-syd.containers.appdomain.cloud
+│  mode: interior
+│  name: SYDNEY
+│  namespace: redis-sydney
+│  version: 1.0.2
+│  ╰─ Services:
+│     ├─ name: skupper-redis-on-prem-server-0
+│     │  address: skupper-redis-on-prem-server-0: 6379 26379
+│     │  protocol: tcp
+│     ├─ name: skupper-redis-server-1
+│     │  address: skupper-redis-server-1: 6379 26379
+│     │  protocol: tcp
+│     ╰─ name: skupper-redis-syd-server-2
+│        address: skupper-redis-syd-server-2: 6379 26379
+│        protocol: tcp
+│        ╰─ Targets:
+│           ├─ name: skupper-redis-syd-server-2-59658ddbb9-dp4zr
+│           ╰─ name: skupper-redis-syd-server-2-59658ddbb9-dp4zr
+╰─ [remote] 5d1dc1b - local 
+   name: local
+   namespace: redis-demo
+   sites linked to: d30741a-SYDNEY
+   version: 1.0.2
+   ╰─ Services:
+      ├─ name: skupper-redis-on-prem-server-0
+      │  address: skupper-redis-on-prem-server-0: 6379 26379
+      │  protocol: tcp
+      ├─ name: skupper-redis-server-1
+      │  address: skupper-redis-server-1: 6379 26379
+      │  protocol: tcp
+      │  ╰─ Targets:
+      │     ├─ name: skupper-redis-server-1-6bb44b65b5-9wt2q
+      │     ╰─ name: skupper-redis-server-1-6bb44b65b5-9wt2q
+      ╰─ name: skupper-redis-syd-server-2
+         address: skupper-redis-syd-server-2: 6379 26379
+         protocol: tcp
+SYDNEY: bryon@rh-brbaker-bakerapps-net:(main)src$ 
+```
+
+View the topology in the RHAI Web Console.
+
+<img src="./images/rhai-syd-2.png" alt="drawing" width="800"/>
+
+<img src="./images/rhai-syd-1.png" alt="drawing" width="800"/>
+
+### Deploy the Client Application to Sydney
+
+```
+SYDNEY: src$ oc apply -f yaml/redis-reader-sydney-dep.yaml 
+
+configmap/redis-reader-app-config created
+deployment.apps/redis-read-tester created
+```
+
+Check the reader is runnning and accessing the local cache.
+Observe the ```server-address``` is the replica located in Sydney.
+
+```
+SYDNEY: src$ oc get pods | grep read
+
+redis-read-tester-59c5857b77-l7xkp            1/1     Running   0          7s
+
+SYDNEY: src$ oc logs pod/redis-read-tester-59c5857b77-l7xkp
+
+Loading configuration
+map[database:0 db-password: server-address:skupper-redis-syd-server-2.redis-sydney.svc.cluster.local:6379]
+Reddis connection:  Redis<skupper-redis-syd-server-2.redis-sydney.svc.cluster.local:6379 db:0>
+Context: context.Background
+Redis Reader
+ReadFromChache()
+Result: {" key "}:{" kingmaking-leisured "}
+Result: {" key "}:{" kingmaking-leisured "}
+Result: {" key "}:{" peregrinate-tirr "}
+Result: {" key "}:{" peregrinate-tirr "}
+Result: {" key "}:{" chalumeau-Cyrenaic "}
+```
+
+### Story Arc
+You have now successfully set up a Redis cache that is replicated from on-premises intot he public cloud. This is a common pattern that is used to protect core systems from Internet-scale workloads.
+
+## Create Replicas in London and New York
+
+### Story Arc
+With RHAI you can easily extend the application's network across all compute locations. In this case we will add London and New York.
+
+As previously discussed, this is a very complex task to do with Redis on Kubernetes. You would typically require a dedicated network and one of Submariner to link Kubernetes Custers, Service Mesh with Federation, or Node Ports. All these options add complexity, security exposure, and management overhead.
+
+### Deploy RHAI in London and New York
+
+#### London
+```
+LONDON: src$ oc new-project redis-london
+Now using project "redis-london" on server "https://c100-e.au-syd.containers.cloud.ibm.com:31734".
+
+LONDON: src$ skupper init --site-name LONDON --console-auth=internal --console-user=admin --console-password=password
+
+Skupper is now installed in namespace 'redis-london'.  Use 'skupper status' to get more information.
+
+LONDON: src$ skupper token create --token-type cert london-token.yaml
+
+Connection token written to london-token.yaml
+
+```
+
+#### New York
+```
+oc new-project redis-nyc
+
+Now using project "redis-nyc" on server "https://c100-e.au-syd.containers.cloud.ibm.com:31734".
+
+
+NEW-YORK: src$ skupper init --site-name NEW-YORK --console-auth=internal --console-user=admin --console-password=password
+
+Skupper is now installed in namespace 'redis-nyc'.  Use 'skupper status' to get more information.
+
+NEW-YORK: src$ skupper token create --token-type cert nyc-token.yaml
+
+Connection token written to nyc-token.yaml 
+```
+
+### On Premises OpenShidt Cluster
+Import the tokens
+
+```
+ON-PREM: src$ skupper link create london-token.yaml 
+
+Site configured to link to skupper-inter-router-redis-london.violet-cluster-new-2761a99850dd8c23002378ac6ce7f9ad-0000.au-syd.containers.appdomain.cloud:443 (name=link2)
+Check the status of the link using 'skupper link status'.
+
+ON-PREM: src$ skupper link create nyc-token.yaml 
+
+Site configured to link to skupper-inter-router-redis-nyc.violet-cluster-new-2761a99850dd8c23002378ac6ce7f9ad-0000.au-syd.containers.appdomain.cloud:443 (name=link3)
+Check the status of the link using 'skupper link status'.
+```
+
+View the network in the console. Observe that all routes go via the On Premises cluster.
+
+<img src="./images/rhai-global-1.png" alt="drawing" width="800"/>
+
+Let's turn this into a multi-path mesh network.
+
+Using intrustions from earlier in this lab:  
+1. Export tokens from London and Sydney.
+2. Import the tokens into the New York RHAI.
+
+Observe the results in the RHAI console:  
+
+<img src="./images/rhai-global-2.png" alt="drawing" width="800"/>
+
+You have now created redundant paths for the RHAI network.
+
+## Deploy the Cache Replicas
+
+### London
+```
+LONDON: src$ oc apply -f yaml/redis-london-ocp-dep.yaml 
+deployment.apps/skupper-redis-london-server-3 created
+configmap/skupper-redis-london-server-3 created
+
+LONDON: src$ oc get pod | grep london
+skupper-redis-london-server-3-55cfc585d6-bxw5p   2/2     Running   0          26s
+
+LONDON: src$ oc exec skupper-redis-london-server-3-55cfc585d6-bxw5p -c redis -- redis-cli get key
+wariest-cannon-proof
+
+LONDON: src$ skupper expose deployment skupper-redis-london-server-3 --port 6379,26379
+
+deployment skupper-redis-london-server-3 exposed as skupper-redis-london-server-3
+```
+
+### New York
+```
+src$ oc apply -f yaml/redis-new-york-ocp-dep.yaml 
+deployment.apps/skupper-redis-nyc-server-4 created
+configmap/skupper-redis-nyc-server-4 created
+
+NEW-YORK: src$ oc get pod | grep nyc
+skupper-redis-nyc-server-4-854bb7f8f-jwd22    2/2     Running   0          11s
+
+NEW-YORK: bryonsrc$ oc exec skupper-redis-nyc-server-4-854bb7f8f-jwd22 -c redis -- redis-cli get key
+winetaster-horsfordite
+
+NEW-YORK: src$ skupper expose deployment skupper-redis-nyc-server-4 --port 6379,26379
+deployment skupper-redis-nyc-server-4 exposed as skupper-redis-nyc-server-4
+```
+
+Observe the network in the RHAI console  
+
+<img src="./images/rhai-global-3.png" alt="drawing" width="800"/>
+
+## Deploy the Application Clients to London and New York
+
+### London
+
+Deploy the client:
+```
+LONDON: src$ oc apply -f yaml/redis-reader-london-dep.yaml 
+configmap/redis-reader-app-config created
+deployment.apps/redis-read-tester created
+
+LONDON: src$ oc get pod | grep read
+redis-read-tester-59c5857b77-6r5mn               1/1     Running   0          9s
+```
+
+Observe the cache replic used by the London client application.  
+
+```
+LONDON: src$ oc logs redis-read-tester-59c5857b77-6r5mn
+Loading configuration
+map[database:0 db-password: server-address:skupper-redis-london-server-3.redis-london.svc.cluster.local:6379]
+Reddis connection:  Redis<skupper-redis-london-server-3.redis-london.svc.cluster.local:6379 db:0>
+Context: context.Background
+Redis Reader
+ReadFromChache()
+Result: {" key "}:{" unfazed-macroplankton "}
+Result: {" key "}:{" unfazed-macroplankton "}
+Result: {" key "}:{" freewheelers-pamplegia "}
+Result: {" key "}:{" freewheelers-pamplegia "}
+Result: {" key "}:{" freewheelers-pamplegia "}
+```
+
+### New York
+
+```
+NEW-YORK: src$ oc apply -f yaml/redis-reader-nyc-dep.yaml 
+configmap/redis-reader-app-config created
+deployment.apps/redis-read-tester created
+
+NEW-YORK: src$ oc get pod | grep read
+redis-read-tester-59c5857b77-bn82d            1/1     Running   0          3s
+
+NEW-YORK: src$ oc logs redis-read-tester-59c5857b77-bn82d
+Loading configuration
+map[database:0 db-password: server-address:skupper-redis-nyc-server-4.redis-nyc.svc.cluster.local:6379]
+Reddis connection:  Redis<skupper-redis-nyc-server-4.redis-nyc.svc.cluster.local:6379 db:0>
+Context: context.Background
+Redis Reader
+ReadFromChache()
+Result: {" key "}:{" gesticulative-frillily "}
+Result: {" key "}:{" diastalsis-nondehiscent "}
+Result: {" key "}:{" diastalsis-nondehiscent "}
+Result: {" key "}:{" hylodes-anticreativeness "}
+Result: {" key "}:{" hylodes-anticreativeness "}
+```
+
+
+Observe the network in the RHAI console.  
+**Note:** The console has a bug and not all redis-read-tester apps are displayed.  
+
+<img src="./images/rhai-global-4.png" alt="drawing" width="800"/>
+
+## Final Cool Display
+
+```
+LONDON: src$ oc attach pod/redis-read-tester-59c5857b77-6r5mn
+
+If you don't see a command prompt, try pressing enter.
+Result: {" key "}:{" stagyrite-pashalics "}
+Result: {" key "}:{" overdomesticate-thermionic "}
+Result: {" key "}:{" overdomesticate-thermionic "}
+Result: {" key "}:{" overestimated-pyrolyzing "}
+```
+
+```
+NEW-YORK: oc attach redis-read-tester-59c5857b77-bn82d
+
+If you don't see a command prompt, try pressing enter.
+Result: {" key "}:{" chamar-unsoldering "}
+Result: {" key "}:{" thym--Boshas "}
+Result: {" key "}:{" thym--Boshas "}
+Result: {" key "}:{" tunicin-encoffin "}
+Result: {" key "}:{" tunicin-encoffin "}
+Result: {" key "}:{" reapproving-metalised "}
+```
+
+Merge all the terminals from each site into a single console display. Here you are showing the "mainframe" writing to the cache and that cache being consumed on premises, and via replicas located: on-premises, Sydney, New York, and London.  
+
+<img src="./images/rhai-finished.gif" alt="drawing"/>
 # *************************************
 
-1. Create an IBM Console in a new terminal window
-```
-bryon@rh-brbaker-bakerapps-net:environment$ . ./env-setup-ibm.sh 
-IBM-CLOUD: bryon@rh-brbaker-bakerapps-net:environment$
-```
-
-2. Deploy Skupper into the ```redis-demo``` project  
-```
-IBM-CLOUD:$ skupper init --site-name ibm-cloud --console-auth=internal --console-user=admin --console-password=password  
-
-Skupper is now installed in namespace 'redis-demo'.  Use 'skupper status' to get more information.
-```
-3. Create a secure token
-```
-IBM-CLOUD:$  skupper token create --token-type cert ibm-cloud.yaml
-Connection token written to ibm-cloud.yaml
-```
-
-4. Change to the LOCAL console
-5. Import the secure token to establish the Skupper network
-
-## View the Skupper Console
-
-```
-LOCAL:$ oc get route
-NAME                   HOST/PORT                                          PATH   SERVICES         PORT           TERMINATION            WILDCARD
-claims                 claims-redis-demo.apps-crc.testing                        skupper          claims         passthrough/Redirect   None
-skupper                skupper-redis-demo.apps-crc.testing                       skupper          metrics        reencrypt/Redirect     None
-skupper-edge           skupper-edge-redis-demo.apps-crc.testing                  skupper-router   edge           passthrough/None       None
-skupper-inter-router   skupper-inter-router-redis-demo.apps-crc.testing          skupper-router   inter-router   passthrough/None       None
-```
-
-Your output may differ, but in this example the skupper router url is: ```skupper-redis-demo.apps-crc.testing```   
-
-Open a browser with the url of the skupper router
-The username is ```admin```. The password is ```password```.  
-
-<img src="./images/rhai-1.png" alt="drawing" width="800"/>
-
-<img src="./images/rhai-2.png" alt="drawing" width="800"/>
-
-<img src="./images/rhai-3.png" alt="drawing" width="800"/>
 
 

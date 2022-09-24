@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: skupper-redis-ldn-server-3
+  name: skupper-redis-london-server-3
   labels:
-    name: skupper-redis-ldn-server-3
+    name: skupper-redis-london-server-3
 spec:
   replicas: 1
   strategy: 
     type: Recreate
   selector:
     matchLabels:
-      name: skupper-redis-ldn-server-3
+      name: skupper-redis-london-server-3
   template:
     metadata:
       labels:
-        name: skupper-redis-ldn-server-3
+        name: skupper-redis-london-server-3
     spec:
       subdomain: replica
       containers:
@@ -23,7 +23,7 @@ spec:
           - name: TZ
             value: Australia/Melbourne
         image: redis
-        command: ['sh', '-c', "cp /config/redis.conf /etc/redis/ && redis-server /etc/redis/redis.conf --replica-announce-ip skupper-redis-ldn-server-3 --slaveof skupper-redis-on-prem-server-0 6379 --protected-mode no"]
+        command: ['sh', '-c', "cp /config/redis.conf /etc/redis/ && redis-server /etc/redis/redis.conf --replica-announce-ip skupper-redis-london-server-3 --slaveof skupper-redis-on-prem-server-0 6379 --protected-mode no"]
         resources:
           limits:
             cpu: 100m
@@ -70,12 +70,12 @@ spec:
           emptyDir: {}
         - name: redis-config
           configMap:
-            name: skupper-redis-ldn-server-3
+            name: skupper-redis-london-server-3
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: skupper-redis-ldn-server-3
+  name: skupper-redis-london-server-3
 data:
   redis.conf: |-
     appendonly no
@@ -97,5 +97,5 @@ data:
     sentinel down-after-milliseconds redis-skupper 5000
     sentinel failover-timeout redis-skupper 10000
     sentinel parallel-syncs redis-skupper 4
-    sentinel announce-ip skupper-redis-ldn-server-3
+    sentinel announce-ip skupper-redis-london-server-3
     sentinel announce-port 26379

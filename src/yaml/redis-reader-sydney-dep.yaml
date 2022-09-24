@@ -17,7 +17,7 @@ metadata:
   name: redis-reader-app-config
 data:
   app-config.properties: |
-    server-address=skupper-redis-on-prem-server-0.redis-demo.svc.cluster.local:6379
+    server-address=skupper-redis-syd-server-2.redis-sydney.svc.cluster.local:6379
     db-password=
     database=0
 ---

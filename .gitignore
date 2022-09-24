@@ -16,4 +16,9 @@ src/bin/*
 # vendor/
 
 *.code-workspace
+
+#Ignore the tokens
+src/sydney-token.yaml
 src/scripts/ibm-cloud.yaml
+src/london-token.yaml
+src/nyc-token.yaml
