@@ -4,4 +4,4 @@ This repository demonstrates how Application Interconnect can be used to create 
 
 This is a common pattern used to protect core infrastructure from Internet-scale workloads.
 
-[Demo script](./docs/demo-script.md)
+[Demo script](./doc/demo-script.md)
