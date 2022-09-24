@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skupper-redis-syd-server-2
+  labels:
+    name: skupper-redis-syd-server-2
+spec:
+  replicas: 1
+  strategy: 
+    type: Recreate
+  selector:
+    matchLabels:
+      name: skupper-redis-syd-server-2
+  template:
+    metadata:
+      labels:
+        name: skupper-redis-syd-server-2
+    spec:
+      subdomain: replica
+      containers:
+      - name: redis
+        env:
+          - name: TZ
+            value: Australia/Melbourne
+        image: redis
+        command: ['sh', '-c', "cp /config/redis.conf /etc/redis/ && redis-server /etc/redis/redis.conf --replica-announce-ip skupper-redis-syd-server-2 --slaveof skupper-redis-on-prem-server-0 6379 --protected-mode no"]
+        resources:
+          limits:
+            cpu: 100m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - mountPath: /etc/redis
+          name: redis-conf
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /config
+      - name: redis-sentinel
+        env:
+          - name: TZ
+            value: Australia/Melbourne
+        image: redis
+        command: ['sh', '-c', "cp /config/sentinel.conf /etc/redis/ && redis-server /etc/redis/sentinel.conf --sentinel"]
+        resources:
+          limits:
+            cpu: 100m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        ports:
+        - containerPort: 26379
+          name: redis-sentinel
+        volumeMounts:
+        - name: redis-conf
+          mountPath: /etc/redis
+        - name: redis-config
+          mountPath: /config
+        - name: redis-data
+          mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+        - name: redis-conf
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: skupper-redis-syd-server-2
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: skupper-redis-syd-server-2
+data:
+  redis.conf: |-
+    appendonly no
+    save ""
+    dir /data
+    dbfilename dump.rdb
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    maxmemory-policy "volatile-lru"
+    maxmemory 1gb
+    loglevel debug
+  sentinel.conf: |-
+    dir /data
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+    sentinel myid 6044fbd47bed15e366a25fb1bff218fa141fred1
+    slave-read-only yes
+    sentinel monitor redis-skupper skupper-redis-on-prem-server-0 6379 2
+    sentinel down-after-milliseconds redis-skupper 5000
+    sentinel failover-timeout redis-skupper 10000
+    sentinel parallel-syncs redis-skupper 4
+    sentinel announce-ip skupper-redis-syd-server-2
+    sentinel announce-port 26379
