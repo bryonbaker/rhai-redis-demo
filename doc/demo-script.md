@@ -867,7 +867,7 @@ Result: {" key "}:{" reapproving-metalised "}
 Merge all the terminals from each site into a single console display. Here you are showing the "mainframe" writing to the cache and that cache being consumed on premises, and via replicas located: on-premises, Sydney, New York, and London.  
 
 <img src="./images/rhai-finished.gif" alt="drawing"/>
-# *************************************
+
 
 
 
