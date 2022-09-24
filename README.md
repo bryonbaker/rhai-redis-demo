@@ -4,4 +4,6 @@ This repository demonstrates how Application Interconnect can be used to create 
 
 This is a common pattern used to protect core infrastructure from Internet-scale workloads.
 
+The Redis cache is replicated from on-premises to Sydney, London and and New York. To run this cluster you need at least two OpenShift clusters.
+
 [Demo script](./doc/demo-script.md)
