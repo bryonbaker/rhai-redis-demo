@@ -1,6 +1,10 @@
 # Building a Global Redis Cache with OpenShift and Red Hat Application Interconnect (aka Skupper)
 
-**Note:** I have not done an edit or spell check on this page yet.  =:-D
+## TODO:
+* Spell check, review and edit. =:-D
+* Skupper installation details
+* OpenShift Local installation details
+* Elaborate on the instructions on setting up the isolated environments.
 
 ## Background
 
