@@ -5,6 +5,7 @@
 * Skupper installation details
 * OpenShift Local installation details
 * Elaborate on the instructions on setting up the isolated environments.
+* Move redis-reader into a container so people don't have to build the on-premises client.
 
 ## Background
 
