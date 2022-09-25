@@ -43,6 +43,11 @@ The story starts by using on-premises OpenShift to get your applciation cloud re
 * The demonstration repeats to add London and New York - thereby demonstrating a global Redis cache powered by an "OpenShift Fabric" and Red Hat Application Interconnect.
 
 # Configure the Demo Environment
+
+## Tested Infrastructure
+* This demo was built using Fedora 36 running OpenShift Local v4.10.
+* The public cloud OpenShift instance was running on IBM Cloud. For convenience three namespaces were used to simulate Sydney, London and New York.
+
 ## Get this demo
 If you havenot already, clone this git repository and change directory into the src directory
 ```
