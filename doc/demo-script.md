@@ -48,8 +48,11 @@ The story starts by using on-premises OpenShift to get your applciation cloud re
 * This demo was built using Fedora 36 running OpenShift Local v4.10.
 * The public cloud OpenShift instance was running on IBM Cloud. For convenience three namespaces were used to simulate Sydney, London and New York.
 
+## Requirments
+* Each cluster must be network reachable from at least one other cluster.
+
 ## Get this demo
-If you havenot already, clone this git repository and change directory into the src directory
+If you have not already, clone this git repository and change directory into the src directory
 ```
 $ git clone https://github.com/bryonbaker/rhai-redis-demo
 $ cd ./rhai-redis-demo/src
@@ -60,6 +63,7 @@ src$
 The demonstration starts by demonstrating the initial application. It is two on-premises applications that share a cache. One writes to the cache (the mainframe), the other reads from the cache (the cache client).
 
 
+## Working Around DNS Resolution on the Demo Machine
 First configure a workaround for resolving DNS hostnames from within a pod.
 
 ```
@@ -70,9 +74,9 @@ Add the following line to the end of the ```hosts``` file and save it:
 127.0.0.1 skupper-redis-on-prem-server-0
 ```
 
-## Start the Redis Server on Preimises
+## Start the Redis Server "On-Preimises"
 
-Start the Redis Cache in Podman. This is the on-premises Master Cache that all replicas are synchronised with.
+Start the Redis Cache in Podman. This is the on-premises ```Master Cache``` that all replicas are synchronised with. This is the cache that the "mainframe application" continuously writes to.
 
 ```
 src$ podman play kube yaml/podman-redis.yaml
@@ -87,9 +91,11 @@ CONTAINER ID  IMAGE                                    COMMAND     CREATED      
 b3008f5d8528  docker.io/library/redis:latest                       About a minute ago  Up About a minute ago  0.0.0.0:6379->6379/tcp, 0.0.0.0:26379->26379/tcp  redis-local-redis-sentinel
 ```
 
-# Demonstration
+# Start of Demonstration
 
-The core environment setup is complete. The demonstration starts from here.
+The core environment setup is now complete. The demonstration starts from here.
+
+## Start the "Traditional Applications"
 
 Open two terminal windows. Mainframe terminal is on the left, and the cient terminal is on the right.
 Change in to the ```src``` directory in both terminals
@@ -119,7 +125,8 @@ Here we are simulating a mainframe periodically writing to a cache, and an on-pr
 4. By the end of ```step 3``` we will have used OpenmShift to get our application cloud ready and can how copy this deployment approach to create a globally-distributed cache with client applications able to access their local replica.
 
 
-# Move the Reader to the On-Premises OpenShift
+# Start the Progressive Migration to Cloud
+The first stage in progressive migration is to make the Client Application cloud-ready and deploy it to the on-premises OpenShift. Application Interconnect simplifies this by creating a local service proxy for the cache master and enabling the OpenShift-hosted replica to synchronise via the proxy.
 
 ## Setup
 1. Open a new terminal window. This will be dedicated to the "on-premises" steps.
