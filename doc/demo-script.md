@@ -1,4 +1,4 @@
-# Building a Global Redis Cache with OpenShift and Red Hat Applicationm Interconnect
+# Building a Global Redis Cache with OpenShift and Red Hat Applicationm Interconnect (aka Skupper)
 
 ## Background
 
@@ -22,6 +22,8 @@ At the end of this demonstration you will show how an on-premises core system wr
 
 You will need a separate command ine environment for each cluster.  
 **TODO: Update the instructions on setting up the isolated environments.**
+
+This demonstration leverages the terrific work of the Skupper project (https://skupper.io).
 
 ## Story Arc
 
