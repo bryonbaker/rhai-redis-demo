@@ -123,22 +123,28 @@ Here we are simulating a mainframe periodically writing to a cache, and an on-pr
 
 ## Setup
 1. Open a new terminal window. This will be dedicated to the "on-premises" steps.
-Enter the following command. Note the additional period at the start (". ")
+Enter the following command. ```Note the additional period at the start (". ")```. You MUST include this or a new shell will not be created.  
+
 ```
 src$ . ./scripts/env-setup-local.sh
+
 ON-PREM: src$
 ```
-This will create a terminal session with its own kubeconfig.  Observe that the prompt changes to give you a visual clue as to which OpenShift cluster you are working with. This will allow you to have multiple logons to OpenShift clusters. We will refer to this terminal as the ``` ON-PREM``` terminal.
+Observe that the prompt changes to include ```ON-PREM```. This command created a terminal session with its own kubeconfig.  This provides a visual clue as to which OpenShift cluster you are working with.  
+
+There is a different environment setup script per cluster. This will allow you to have multiple logons to OpenShift clusters.  
+
+We will refer to this terminal as the ``` ON-PREM``` terminal.
 
 2. Log onto the OpenShift local.
 3. Create a new project:
 ```
-src$ oc new-project redis-demo
+ON-PREM: src$ oc new-project redis-demo
 ```
 
 ## Step 2: Install Skupper
 ```
-$ LOCAL:$ skupper init --site-name local --console-auth=internal --console-user=admin --console-password=password
+ON-PREM:$ skupper init --site-name local --console-auth=internal --console-user=admin --console-password=password
 
 Skupper is now installed in namespace 'redis-demo'.  Use 'skupper status' to get more information.
 ```
