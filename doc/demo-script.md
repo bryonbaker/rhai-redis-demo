@@ -16,6 +16,10 @@ The demonstration will use four OpenShift clusters:
 * London (AWS)
 * New York (AWS)
 
+At the end of this demonstration you will show how an on-premises core system writes to a cache master and it is replicated across the globe.
+
+<img src="./images/rhai-finished.gif" alt="drawing" width="900"/>  
+
 You will need a separate command ine environment for each cluster.  
 **TODO: Update the instructions on setting up the isolated environments.**
 
