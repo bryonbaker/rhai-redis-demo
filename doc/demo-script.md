@@ -110,7 +110,6 @@ This will download and start a container that will update the local cache with a
 
 In the Client terminal type:
 ```
-src$ bin/redis-tester --read
 src$ podman run -d --rm --network="host" --name read-tester quay.io/brbaker/redis-read-tester:latest
 src$ podman attach read-tester
 ```
