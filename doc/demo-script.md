@@ -15,7 +15,7 @@ This is a common pattern to protect core systems from Internet-scale workloads. 
 
 Building a globally-distributed cache with Redis and Kubernetes is traditionally difficult and complex because of Redis' requirement for TCP. To implement this without Application Interconnect you would need a global WAN and the use of NodePorts, Federated Service Mesh, or Submariner. All of which are complex to implement and manage at scale.
 
-This demonstration illustrates how Application Interconnect simplifies aplication interconnectivity requirements, and enables progressive cloud migration of workloads.
+This demonstration illustrates how Application Interconnect simplifies application interconnectivity requirements, and enables progressive cloud migration of workloads.
 
 The demonstration will use four OpenShift clusters:
 * On-premises (OpenShift Local)
@@ -27,20 +27,20 @@ At the end of this demonstration you will show how an on-premises core system wr
 
 <img src="./images/rhai-finished.gif" alt="drawing" width="900"/>  
 
-You will need a separate command ine environment for each cluster.  
+You will need a separate command line environment for each cluster.  
 **TODO: Update the instructions on setting up the isolated environments.**
 
 This demonstration leverages the terrific work of the Skupper project (https://skupper.io).
 
 ## Story Arc
 
-The story starts by using on-premises OpenShift to get your applciation cloud ready. 
+The story starts by using on-premises OpenShift to get your application cloud ready. 
 * You will use Application Interconnect to provide a simple kubernetes-centric integration that will distribute the cache from traditional infrastructure to Kubernetes.
 * Once the cache is successfully being replicated you will deploy a cache client on OpenShift. 
 * Having successfully used OpenShift on-premises to get your application cloud ready, you will:
   * Extend the Application Interconnect network to OpenSHift running on IBM Cloud in Sydney.
   * Deploy a cache replica in Sydney
-  * Deploy the cache reader in Sydney that uses the Sydney-based cache - thereby demonstrating how a sydney-based deployment is reading a local Redis cache that is being updated from within the data cantre.
+  * Deploy the cache reader in Sydney that uses the Sydney-based cache - thereby demonstrating how a sydney-based deployment is reading a local Redis cache that is being updated from within the data centre.
 * The demonstration repeats to add London and New York - thereby demonstrating a global Redis cache powered by an "OpenShift Fabric" and Red Hat Application Interconnect.
 
 # Configure the Demo Environment
@@ -75,7 +75,7 @@ Add the following line to the end of the ```hosts``` file and save it:
 127.0.0.1 skupper-redis-on-prem-server-0
 ```
 
-## Start the Redis Server "On-Preimises"
+## Start the Redis Server "On-Premises"
 
 Start the Redis Cache in Podman. This is the on-premises ```Master Cache``` that all replicas are synchronised with. This is the cache that the "mainframe application" continuously writes to.
 
@@ -98,7 +98,7 @@ The core environment setup is now complete. The demonstration starts from here.
 
 ## Start the "Traditional Applications"
 
-Open two terminal windows. Mainframe terminal is on the left, and the cient terminal is on the right.
+Open two terminal windows. Mainframe terminal is on the left, and the client terminal is on the right.
 Change in to the ```src``` directory in both terminals
 
 In the Mainframe terminal type:
@@ -121,9 +121,9 @@ Here we are simulating a mainframe periodically writing to a cache, and an on-pr
 
 ### Demonstration Summary
 1. First we will install Application Interconnect on On-Premises OpenShift, and then install a Gateway on the same machine that is running the on-premises master Redis cache.
-2. Once the RHAI components are in place we will expose the on-premises cache to the OpenSHift cluster so Client applications can access the cache.
+2. Once the RHAI components are in place we will expose the on-premises cache to the OpenShift cluster so Client applications can access the cache.
 3. We will then refine this deployment to replicate the cache on OpenShift, and repoint the client application to use the cache replica.
-4. By the end of ```step 3``` we will have used OpenmShift to get our application cloud ready and can how copy this deployment approach to create a globally-distributed cache with client applications able to access their local replica.
+4. By the end of ```step 3``` we will have used OpenShift to get our application cloud ready and can now copy this deployment approach to create a globally-distributed cache with client applications able to access their local replica.
 
 
 # Start the Progressive Migration to Cloud
@@ -201,7 +201,7 @@ pod/skupper-router-b6f9947fd-pd89l                2/2     Running   0          1
 pod/skupper-service-controller-7cccd9467b-v9zgf   1/1     Running   0          15m
 ```
 
-Observe that the Redis Master Cache is published as a service in the project, but there is no pod for the Redis Master. This is how RHAI creates a locationless application. It uses a Servicve Proxy and the RHAI Router routes requests to where the Service's implementation exists. Any call to the ```skupper-redis-on-prem-server-0``` service will be redirected via the Gateway to the cache running on premises.
+Observe that the Redis Master Cache is published as a service in the project, but there is no pod for the Redis Master. This is how RHAI creates a locationless application. It uses a Service Proxy and the RHAI Router routes requests to where the Service's implementation exists. Any call to the ```skupper-redis-on-prem-server-0``` service will be redirected via the Gateway to the cache running on premises.
 
 ## Deploy the Client Application to OpenShift
 
@@ -232,10 +232,10 @@ Result: {" key "}:{" foreschool-Amye "}
 Result: {" key "}:{" entrapment-pleuropericardial "}
 ```
 
-View the deployment in the RHAI Console. Observe the Cient Application deployment is accessing the cache vie the Gateway.  
+View the deployment in the RHAI Console. Observe the Client Application deployment is accessing the cache via the Gateway.  
 <img src="./images/rhai-on-prem-0.png" alt="drawing" width="900"/>
 
-Open the On-Premises OpenSHift console and view the logs of the running Client Application. Scroll up on the logs and observe the server name for the cache is the on-premises cache:
+Open the On-Premises OpenShift console and view the logs of the running Client Application. Scroll up on the logs and observe the server name for the cache is the on-premises cache:
 <img src="./images/rhai-on-prem-1.png" alt="drawing" width="900"/>
 
 At no point was a global DNS entry required, the Gateway is part of the RHAI application's network.
@@ -263,11 +263,11 @@ Result: {" key "}:{" asbestoses-squiffer "}
 
 ### Story Arc
 
-One of the key value propositions of the Red Hat Open Hybrid cloud is the ability to create an "OpenShift Fabric" that ets you get your workloads 100% ready for the puiblic cloud, and then redeploy those workloads as is with only an endpoint configuration change.
+One of the key value propositions of the Red Hat Open Hybrid cloud is the ability to create an "OpenShift Fabric" that lets you get your workloads 100% ready for the public cloud, and then redeploy those workloads as-is with only an endpoint configuration change.
 
 In this section of the demonstration we will set up OpenShift on-premises as a true stepping stone for the public cloud deployments.
 
-So far we have deployed the Client Application to on-premises OpenShift. Now we will create a cache replica on OpenShift. Once we have that we will be able to repeate the pattern of cache/appictaion deployment globally.
+So far we have deployed the Client Application to on-premises OpenShift. Now we will create a cache replica on OpenShift. Once we have that we will be able to repeat the pattern of cache/application deployment globally.
 
 ### Deploy Redis to OpenSHift On-Premises
 ```
@@ -304,7 +304,7 @@ command terminated with exit code 130
 ON-PREM: yaml$ 
 ```
 
-### Expose the On-Premsies OpenShift Cache to the RHAI Network
+### Expose the On-Premises OpenShift Cache to the RHAI Network
 View the current deployments and services
 ```
 ON-PREM: yaml$ oc get deployment,svc
@@ -379,7 +379,7 @@ ON-PREM: bryon@rh-brbaker-bakerapps-net:(main)yaml$
 ```
 $ oc edit cm/redis-reader-on-prem-app-config
 ```
-Change the server addess property to be: ```server-address=skupper-redis-server-1:6379```.    
+Change the server address property to be: ```server-address=skupper-redis-server-1:6379```.    
 
 ```
 # Please edit the object below. Lines beginning with a '#' will be ignored,
@@ -422,7 +422,7 @@ ON-PREM-yaml$ oc logs pod/redis-read-tester-7c474855bb-czp42
 
 Loading configuration
 map[database:0 db-password: server-address:skupper-redis-server-1:6379]
-Reddis connection:  Redis<skupper-redis-server-1:6379 db:0>
+Redis connection:  Redis<skupper-redis-server-1:6379 db:0>
 Context: context.Background
 Redis Reader
 ReadFromChache()
@@ -447,7 +447,7 @@ Result: {" key "}:{" overforward-temporarily "}
 ```
 Leave this running as you will use this to compare the global cache replication later.
 
-The following screen shot shows the "Mainframe", the logs from the original fat-client on-premises Application Client, and the Application CLient using the replicated cache on On-Premises OpemnShift. Observe how they are all in sync.
+The following screen shot shows the "Mainframe", the logs from the original fat-client on-premises Application Client, and the Application CLient using the replicated cache on On-Premises OpenShift. Observe how they are all in sync.
 
 <img src="./images/rhai-on-prem-3.png" alt="drawing" width="800"/>
 
@@ -464,7 +464,7 @@ Open a new terminal window and set up the Sydney environment by running the comm
 src$ . ./scripts/env-setup-ibm.sh
 SYDNEY: src$
 ```
-Observe the prompt now idicates you are using the SYDNEY environment
+Observe the prompt now indicates you are using the SYDNEY environment
 
 ```
 SYDNEY src$ oc create-project redis-sydney
@@ -539,7 +539,7 @@ Sites:
 SYDNEY: bryon@rh-brbaker-bakerapps-net:(main)src$ 
 ```
 
-When you established the nwteork, RHAI made all of the remote services available to the Sydney-based cluster.
+When you established the network, RHAI made all of the remote services available to the Sydney-based cluster.
 
 View the services and pods running in Sydney:
 ```
@@ -581,7 +581,7 @@ SYDNEY: src$ oc exec skupper-redis-syd-server-2-59658ddbb9-dp4zr -c redis -- red
 quadrisyllabical-alabastra
 ```
 
-Observe the cache value matches the most recent value written to the on-premsies master cache by the "Mainframe."
+Observe the cache value matches the most recent value written to the on-premises master cache by the "Mainframe."
 
 We now need to make the Sydney replica available to the RHAI network:
 
@@ -592,7 +592,7 @@ deployment skupper-redis-syd-server-2 exposed as skupper-redis-syd-server-2
 
 ```
 
-Examine the deployments, servcies, and running pods. Observe the Sydney replica is now available:
+Examine the deployments, services, and running pods. Observe the Sydney replica is now available:
 ```
 SYDNEY: src$ oc get deployment,svc,pods
 NAME                                         READY   UP-TO-DATE   AVAILABLE   AGE
@@ -674,7 +674,7 @@ configmap/redis-reader-app-config created
 deployment.apps/redis-read-tester created
 ```
 
-Check the reader is runnning and accessing the local cache.
+Check the reader is running and accessing the local cache.
 Observe the ```server-address``` is the replica located in Sydney.
 
 ```
@@ -698,14 +698,14 @@ Result: {" key "}:{" chalumeau-Cyrenaic "}
 ```
 
 ### Story Arc
-You have now successfully set up a Redis cache that is replicated from on-premises intot he public cloud. This is a common pattern that is used to protect core systems from Internet-scale workloads.
+You have now successfully set up a Redis cache that is replicated from on-premises into the public cloud. This is a common pattern that is used to protect core systems from Internet-scale workloads.
 
 ## Create Replicas in London and New York
 
 ### Story Arc
 With RHAI you can easily extend the application's network across all compute locations. In this case we will add London and New York.
 
-As previously discussed, this is a very complex task to do with Redis on Kubernetes. You would typically require a dedicated network and one of Submariner to link Kubernetes Custers, Service Mesh with Federation, or Node Ports. All these options add complexity, security exposure, and management overhead.
+As previously discussed, this is a very complex task to do with Redis on Kubernetes. You would typically require a dedicated network and one of Submariner to link Kubernetes Clusters, Service Mesh with Federation, or Node Ports. All these options add complexity, security exposure, and management overhead.
 
 ### Deploy RHAI in London and New York
 
@@ -740,7 +740,7 @@ NEW-YORK: src$ skupper token create --token-type cert nyc-token.yaml
 Connection token written to nyc-token.yaml 
 ```
 
-### On Premises OpenShidt Cluster
+### On Premises OpenShift Cluster
 Import the tokens
 
 ```
@@ -761,7 +761,7 @@ View the network in the console. Observe that all routes go via the On Premises 
 
 Let's turn this into a multi-path mesh network.
 
-Using intrustions from earlier in this lab:  
+Using instructions from earlier in this lab:  
 1. Export tokens from London and Sydney.
 2. Import the tokens into the New York RHAI.
 
