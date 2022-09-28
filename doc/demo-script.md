@@ -101,15 +101,18 @@ The core environment setup is now complete. The demonstration starts from here.
 Open two terminal windows. Mainframe terminal is on the left, and the client terminal is on the right.
 Change in to the ```src``` directory in both terminals
 
-In the Mainframe terminal type:
+In the "Mainframe" terminal type:
 ```
-src$ watch bin/redis-tester --write
+src$ podman run -d --rm --network="host" --name write-tester quay.io/brbaker/redis-write-tester:latest
+src$ podman attach write-tester
 ```
-The cache will be updated every 2 seconds with a new entry.
+This will download and start a container that will update the local cache with a new entry every two seconds.
 
 In the Client terminal type:
 ```
 src$ bin/redis-tester --read
+src$ podman run -d --rm --network="host" --name read-tester quay.io/brbaker/redis-read-tester:latest
+src$ podman attach read-tester
 ```
 
 You should now see the "Mainframe" updating the cache every two seconds, and the Client application reading the updated cache.

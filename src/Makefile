@@ -18,13 +18,13 @@ clean:
 build:
 	go build -o bin/redis-tester cmd/main.go
 
-package-reader: clean build
-	podman build . -f Read-Dockerfile -t quay.io/brbaker/redis-read-tester:latest
+redis-reader: clean build
+	podman build -f ReaderDockerfile -t quay.io/brbaker/redis-read-tester:latest .
 
-package-writer: clean build
-	podman build . -f Write-Dockerfile -t quay.io/brbaker/redis-write-tester:latest
+redis-writer: clean build
+	podman build -f WriterDockerfile -t quay.io/brbaker/redis-write-tester:latest .
 
 test: clean build
 	echo "Tsk tsk! make test is not implemented yet."
 
-all: clean build
+all: clean build redis-reader redis-writer

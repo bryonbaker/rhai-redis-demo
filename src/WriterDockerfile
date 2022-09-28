@@ -1,0 +1,11 @@
+FROM registry.redhat.io/ubi9:9.0.0-1576
+LABEL maintainer="redis-writer"
+
+WORKDIR /app
+COPY config/app-config.properties ./config/app-config.properties
+COPY bin/redis-tester .
+COPY scripts/run-writer.sh .
+RUN mkdir -p /usr/share/dict
+COPY data/linux.words /usr/share/dict
+RUN ln -s /usr/share/dict/linux.words /usr/share/dict/words
+CMD ["/app/run-writer.sh"]
