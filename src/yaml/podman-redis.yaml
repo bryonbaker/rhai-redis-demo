@@ -34,7 +34,7 @@ spec:
     env:
       - name: TZ
         value: Australia/Melbourne
-    image: redis
+    image: quay.io/bryonbaker/redis:baseline
     command: ['/bin/bash', '-c', "mkdir -p /etc/redis && cp /config/redis.conf /etc/redis/ && redis-server /etc/redis/redis.conf --replica-announce-ip skupper-redis-on-prem-server-0 --protected-mode no"]
     resources:
       limits:
@@ -54,7 +54,7 @@ spec:
     env:
       - name: TZ
         value: Australia/Melbourne
-    image: redis
+    image: quay.io/bryonbaker/redis:baseline
     command: ['/bin/bash', '-c', "mkdir -p /etc/redis && cp /config/sentinel.conf /etc/redis/ && redis-server /etc/redis/sentinel.conf --sentinel"]
     resources:
       limits:
