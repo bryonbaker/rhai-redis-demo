@@ -113,7 +113,7 @@ src$ podman run -d --rm --network="host" --name read-tester quay.io/brbaker/redi
 src$ podman attach read-tester
 ```
 
-You should now see the "Mainframe" updating the cache every two seconds, and the Client application reading the updated cache.
+This will download and start a container that will read the local cache every second. You should now see the "Mainframe" updating the cache every two seconds.
 
 <img src="./images/on-prem-0.png" alt="drawing" width="900"/>
 
