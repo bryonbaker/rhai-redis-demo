@@ -17,7 +17,7 @@ metadata:
   name: redis-reader-app-config
 data:
   app-config.properties: |
-    server-address=skupper-redis-nyc-server-4.redis-nyc.svc.cluster.local:6379
+    server-address=skupper-redis-nyc-server-4:6379
     db-password=
     database=0
 ---
