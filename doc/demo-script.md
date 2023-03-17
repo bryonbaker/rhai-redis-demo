@@ -47,6 +47,7 @@ The story starts by using on-premises OpenShift to get your application cloud re
 ## Tested Infrastructure
 * This demo was built using Fedora 36 running [OpenShift Local](https://developers.redhat.com/products/openshift-local/overview) v4.10.
 * The public cloud OpenShift instance was running on IBM Cloud. For convenience, three namespaces are used to simulate Sydney, London and New York.
+* Skupper version 1.3.0
 
 ## Requirments
 * Each cluster must be network reachable from at least one other cluster.
@@ -153,7 +154,7 @@ ON-PREM: src$ oc new-project redis-demo
 
 ## Step 2: Install Skupper
 ```
-ON-PREM:$ skupper init --site-name local --console-auth=internal --console-user=admin --console-password=password
+ON-PREM: $skupper init --site-name local --enable-console --enable-flow-collector --console-auth=internal --console-user=admin --console-password=password
 
 Skupper is now installed in namespace 'redis-demo'.  Use 'skupper status' to get more information.
 ```
@@ -473,7 +474,7 @@ SYDNEY src$ oc create-project redis-sydney
 ### Create the RHAI Network
 
 ```
-SYDNEY: src$ skupper init --site-name SYDNEY --console-auth=internal --console-user=admin --console-password=password
+SYDNEY: src$ skupper init --enable-console --enable-flow-collector --site-name local --console-auth=internal --console-user=admin --console-password=password
 
 Skupper is now installed in namespace 'redis-sydney'.  Use 'skupper status' to get more information.
 ```
@@ -714,7 +715,7 @@ As previously discussed, this is a very complex task to do with Redis on Kuberne
 LONDON: src$ oc new-project redis-london
 Now using project "redis-london" on server "https://c100-e.au-syd.containers.cloud.ibm.com:31734".
 
-LONDON: src$ skupper init --site-name LONDON --console-auth=internal --console-user=admin --console-password=password
+LONDON: src$ skupper init --site-name LONDON --enable-console --enable-flow-collector --console-auth=internal --console-user=admin --console-password=password
 
 Skupper is now installed in namespace 'redis-london'.  Use 'skupper status' to get more information.
 
@@ -731,7 +732,7 @@ oc new-project redis-nyc
 Now using project "redis-nyc" on server "https://c100-e.au-syd.containers.cloud.ibm.com:31734".
 
 
-NEW-YORK: src$ skupper init --site-name NEW-YORK --console-auth=internal --console-user=admin --console-password=password
+NEW-YORK: src$ skupper init --site-name NEW-YORK --enable-console --enable-flow-collector --console-auth=internal --console-user=admin --console-password=password
 
 Skupper is now installed in namespace 'redis-nyc'.  Use 'skupper status' to get more information.
 
