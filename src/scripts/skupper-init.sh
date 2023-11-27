@@ -6,7 +6,8 @@ if [ $# -eq 0 ]; then
 fi
 
 echo "Setting up Skupper for Site $1"
-skupper init --site-name $1 --console-auth=internal --console-user=admin --console-password=password
+skupper init --site-name $1 --enable-console --enable-flow-collector --console-auth=internal --console-user=admin --console-password=password
+#skupper init --site-name $1 --console-auth=internal --console-user=admin --console-password=password
 
 token=$1"-token.yaml"
 echo "Exporting token $token"
